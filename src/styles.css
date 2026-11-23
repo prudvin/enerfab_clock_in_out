@@ -1,0 +1,862 @@
+/*
+ * Colour tokens.
+ *  --bg-deep / --bg-mid  near-black base of the background, tinted toward the theme
+ *  --glow / --glow-soft  theme-colour light blended over the black base
+ *  --text*               text & icons drawn directly on the dark background
+ *  --highlight           emphasised labels on the background (day, gate name)
+ *  --accent*             theme colour used for buttons, focus and selection
+ *  --surface / --ink     white panels (popover, modals, settings cards) and their text
+ */
+:root {
+  --surface: #ffffff;
+  --surface-2: #f1f4f9;
+  --ink: #142033;
+  --ink-muted: #5b6b82;
+  --text: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.72);
+  --on-bg-fill: rgba(255, 255, 255, 0.08);
+  --on-bg-fill-strong: rgba(255, 255, 255, 0.16);
+  --on-bg-border: rgba(255, 255, 255, 0.14);
+  --ok: #1f9d55;
+  --error: #d64545;
+  --radius: 16px;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  --theme-orange: #c2570c;
+  --theme-green: #15703f;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Themes — selected in Settings, applied via <html data-theme="…">. Orange is the default. */
+:root,
+:root[data-theme='orange'] {
+  --bg-deep: #0a0604;
+  --bg-mid: #24120a;
+  --glow: rgba(214, 98, 18, 0.55);
+  --glow-soft: rgba(214, 98, 18, 0.18);
+  --highlight: #f6a35a;
+  --accent: var(--theme-orange);
+  --accent-bright: #e8792a;
+  --accent-ink: #ffffff;
+  --accent-soft: #fdeee1;
+}
+
+:root[data-theme='green'] {
+  --bg-deep: #030806;
+  --bg-mid: #0b1f15;
+  --glow: rgba(28, 140, 78, 0.55);
+  --glow-soft: rgba(28, 140, 78, 0.18);
+  --highlight: #5fd394;
+  --accent: var(--theme-green);
+  --accent-bright: #22a15b;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3f6ec;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  /* Theme colour glowing out of a near-black base: top light, faint floor reflection, dark vignette. */
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -10%, var(--glow), transparent 70%),
+    radial-gradient(ellipse 70% 40% at 50% 115%, var(--glow-soft), transparent 70%),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%),
+    linear-gradient(180deg, var(--bg-mid) 0%, var(--bg-deep) 75%);
+  background-color: var(--bg-deep);
+  background-attachment: fixed;
+  color: var(--text);
+  overflow: hidden;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+/* ---------- Layout ---------- */
+
+.screen {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: clamp(16px, 3vw, 32px);
+}
+
+.screen__top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 16px;
+}
+
+.screen__top > .manual-anchor {
+  justify-self: end;
+}
+
+.site-title {
+  text-align: center;
+  max-width: 60vw;
+}
+
+.site-title__company {
+  font-size: clamp(1.4rem, 3vw, 2.4rem);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.site-title__gate {
+  margin-top: 4px;
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  font-weight: 600;
+  color: var(--highlight);
+  overflow-wrap: anywhere;
+}
+
+.screen__center {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Soft blobs of theme light behind the glass so its transparency and blur are visible. */
+.screen__center::before,
+.screen__center::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+}
+
+.screen__center::before {
+  width: clamp(200px, 30vw, 420px);
+  height: clamp(200px, 30vw, 420px);
+  top: 12%;
+  left: 22%;
+  background: var(--accent-bright);
+  opacity: 0.45;
+  animation: drift 14s ease-in-out infinite alternate;
+}
+
+.screen__center::after {
+  width: clamp(160px, 24vw, 340px);
+  height: clamp(160px, 24vw, 340px);
+  bottom: 10%;
+  right: 22%;
+  background: var(--accent);
+  opacity: 0.4;
+  animation: drift 18s ease-in-out infinite alternate-reverse;
+}
+
+.screen__bottom {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* ---------- Clock (frosted glass) ---------- */
+
+.clock {
+  position: relative;
+  z-index: 1;
+  padding: clamp(20px, 3.5vw, 44px) clamp(28px, 5vw, 72px);
+  border-radius: clamp(20px, 3vw, 36px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  text-align: center;
+  line-height: 1;
+  overflow: hidden;
+}
+
+/* Diagonal sheen across the top of the glass. */
+.clock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 45%);
+  pointer-events: none;
+}
+
+.clock__day {
+  font-size: clamp(1.25rem, 3vw, 2.4rem);
+  font-weight: 600;
+  color: var(--highlight);
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  /* letter-spacing adds trailing space; offset it so the word stays centred */
+  margin-right: -0.3em;
+}
+
+.clock__time {
+  margin: 0.18em 0 0.22em;
+  font-size: clamp(3.5rem, 14.5vw, 13rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  /* Translucent digits: solid white at the top fading to see-through at the bottom. */
+  background: linear-gradient(180deg, #ffffff 30%, rgba(255, 255, 255, 0.55) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 28px var(--glow-soft)) drop-shadow(0 8px 24px rgba(0, 0, 0, 0.35));
+}
+
+.clock__sep {
+  display: inline-block;
+  margin: 0 0.02em;
+  transform: translateY(-0.06em);
+  /* The animation puts the colon on its own layer, so it needs its own translucent fill. */
+  background: linear-gradient(180deg, #ffffff 30%, rgba(255, 255, 255, 0.55) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: sep-pulse 1s ease-in-out infinite;
+}
+
+.clock__period {
+  margin-left: 0.15em;
+  font-size: 0.28em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  vertical-align: 0.3em;
+}
+
+.clock__date {
+  font-size: clamp(1.1rem, 2.6vw, 2.1rem);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+@keyframes sep-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes drift {
+  to {
+    transform: translate(8vw, 4vh) scale(1.15);
+  }
+}
+
+/* ---------- Buttons ---------- */
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn {
+  min-height: 56px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  transition: transform 80ms ease, filter 120ms ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: linear-gradient(180deg, var(--accent-bright), var(--accent));
+  color: var(--accent-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--ink-muted);
+  border: 2px solid #d5dbe5;
+}
+
+/* Button placed directly on the coloured home background. */
+.btn--inverse {
+  background: linear-gradient(180deg, var(--accent-bright), var(--accent));
+  color: var(--accent-ink);
+  border: 1px solid var(--on-bg-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 24px var(--glow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.btn--block {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 1.2rem;
+}
+
+.icon-btn--lg {
+  width: 64px;
+  height: 64px;
+  background: var(--on-bg-fill);
+  border: 1px solid var(--on-bg-border);
+  color: var(--text);
+}
+
+.icon-btn--lg:active {
+  background: var(--on-bg-fill-strong);
+}
+
+/* ---------- Overlays ---------- */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  animation: fade 150ms ease;
+}
+
+.backdrop--clear {
+  background: rgba(3, 7, 15, 0.35);
+}
+
+.manual-anchor {
+  position: relative;
+}
+
+.popover,
+.modal {
+  color: var(--ink);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px 24px 24px;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  z-index: 11;
+  width: min(360px, calc(100vw - 32px));
+  animation: pop 160ms ease;
+  transform-origin: top right;
+}
+
+.popover__arrow {
+  position: absolute;
+  top: -8px;
+  right: 40px;
+  width: 16px;
+  height: 16px;
+  background: var(--surface);
+  transform: rotate(45deg);
+}
+
+.modal {
+  width: min(440px, 100%);
+  text-align: center;
+  animation: pop 160ms ease;
+}
+
+.panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.panel__header .icon-btn {
+  color: var(--ink-muted);
+}
+
+.modal__message {
+  margin: 16px 0 4px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  min-height: 1.5em;
+}
+
+.modal__hint {
+  margin: 0 0 8px;
+  color: var(--ink-muted);
+}
+
+/* ---------- Form ---------- */
+
+.field {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.field__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.field__input {
+  width: 100%;
+  height: 60px;
+  padding: 0 16px;
+  border: 2px solid #d5dbe5;
+  border-radius: 12px;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: var(--ink);
+  background: var(--surface-2);
+  outline: none;
+  user-select: text;
+}
+
+.field__input:focus {
+  border-color: var(--accent);
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.keypad__key {
+  height: 60px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.keypad__key:active {
+  background: #dfe5ee;
+}
+
+.keypad__key--muted {
+  font-size: 1.05rem;
+  color: var(--ink-muted);
+}
+
+.notice {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.notice--ok {
+  background: #e6f6ed;
+  color: var(--ok);
+  font-size: 1.1rem;
+}
+
+.notice--error {
+  background: #fdecec;
+  color: var(--error);
+}
+
+.text-error {
+  color: var(--error);
+}
+
+/* ---------- Badge scan ---------- */
+
+.scan {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 12px auto 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  overflow: hidden;
+}
+
+.scan--denied {
+  color: var(--error);
+  background: #fdecec;
+}
+
+.scan__icon {
+  width: 72px;
+  height: 72px;
+}
+
+.scan__beam {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  height: 3px;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+  animation: beam 1.6s ease-in-out infinite alternate;
+}
+
+.scan--checking .scan__beam {
+  animation-duration: 0.5s;
+}
+
+/* ---------- Settings page ---------- */
+
+.page {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  overflow-y: auto;
+  background:
+    radial-gradient(ellipse 90% 50% at 50% -10%, var(--glow), transparent 70%),
+    linear-gradient(180deg, var(--bg-mid) 0%, var(--bg-deep) 60%);
+  background-color: var(--bg-deep);
+  color: var(--ink);
+  user-select: text;
+  animation: fade 150ms ease;
+}
+
+.page__inner {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: clamp(16px, 3vw, 32px);
+}
+
+.page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.page__header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: var(--text);
+}
+
+.page__sub {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+}
+
+.page__actions .btn--ghost {
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.page__actions {
+  display: flex;
+  gap: 12px;
+}
+
+.card {
+  margin-bottom: 16px;
+  padding: 20px 24px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(20, 32, 51, 0.08);
+}
+
+.card h2 {
+  margin-bottom: 4px;
+}
+
+.card__hint {
+  margin: 0 0 16px;
+  color: var(--ink-muted);
+}
+
+.card > h2 + .theme-options {
+  margin-top: 16px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.grid-2 .field {
+  margin-bottom: 0;
+}
+
+.field__input--text {
+  font-size: 1.2rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-align: left;
+}
+
+.theme-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 180px;
+  min-height: 64px;
+  padding: 0 20px;
+  border: 3px solid #d5dbe5;
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.theme-option__swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.theme-option--orange .theme-option__swatch {
+  background: var(--theme-orange);
+}
+
+.theme-option--green .theme-option__swatch {
+  background: var(--theme-green);
+}
+
+.theme-option.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.theme-option.is-selected::after {
+  content: '✓';
+  margin-left: auto;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.admin-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+}
+
+.admin-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  font-size: 1.1rem;
+}
+
+.admin-list__item + .admin-list__item {
+  border-top: 1px solid #e3e8ef;
+}
+
+.admin-list__name {
+  color: var(--ink-muted);
+}
+
+.tag {
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.empty {
+  margin: 0 0 16px;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.admin-add {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+}
+
+.admin-add .field__input {
+  height: 56px;
+}
+
+.btn--sm {
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 1rem;
+}
+
+@media (max-width: 640px) {
+  .admin-add {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Scan banner & hint ---------- */
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: min(420px, 50vw);
+  max-width: 60vw;
+  padding: 14px 22px 14px 14px;
+  border-radius: 14px;
+  border-left: 8px solid var(--banner-color);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  animation: slide-down 220ms ease;
+}
+
+/* A white card reads clearly on either theme; the status colour lives in the stripe and icon. */
+.banner--ok {
+  --banner-color: var(--ok);
+}
+
+.banner--error {
+  --banner-color: var(--error);
+}
+
+.banner--info {
+  --banner-color: var(--ink-muted);
+}
+
+.banner__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--banner-color);
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.banner__title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--banner-color);
+}
+
+.banner--info .banner__title {
+  color: var(--ink);
+}
+
+.banner__detail {
+  margin-top: 2px;
+  color: var(--ink-muted);
+}
+
+.scan-hint {
+  position: fixed;
+  bottom: clamp(16px, 3vw, 32px);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  min-height: 64px;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.scan-hint__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  animation: pulse 1.8s ease-out infinite;
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+
+@keyframes pulse {
+  to {
+    box-shadow: 0 0 0 12px rgba(255, 255, 255, 0);
+  }
+}
+
+/* ---------- Utilities ---------- */
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes beam {
+  from {
+    top: 20%;
+  }
+  to {
+    top: 80%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+  }
+}
